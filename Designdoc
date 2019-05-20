@@ -1,0 +1,53 @@
+
+Tkinter Tabs [3]:
+
+[0]: Player add/delete
+
+[Add Player button at top]
+[Start button] <--- Becomes a pause button after first press
+
+
+/Name/Points/Remove
+
+
+[1]: Player Score
+Countdown timer at top with Player current turn
+top three players+points
+
+Players in order with plus+minus to their score
+Double column
+
+what if it was something overlapping. So it says the time at th back
+in large font and in front in front of the time it says the name
+and score of that player
+-----------------------------------------------
+
+[5:00] Turn: Connor   Pts: 4/15
+
+	1. Joe    9
+	2. Buzz   6
+	3. Connor 4
+
+
+Joe     9
+Connor  4
+Buzz    6
+Daryl   1
+
+----------------------------------------------
+Every time the countdown timer hits zero it chimes a bell
+
+Maybe integrate some sort of text to audio synthesizer
+to read out the name?
+
+A sound effect plays if any player meets the point threshold, but the 
+game does not stop
+
+
+[2]: Settings
+Win Points: 15 -integer field
+Timer: Default 5 minutes -integer field in minutes
+Order: CW, CCW, Shuffle, Random (total) -drop down select
+Reset button?
+
+New people added are always added at the bottom of the pile
