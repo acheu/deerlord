@@ -229,18 +229,18 @@ def refresh_playertab(note):
                                             column=1,
                                             sticky='n')
     tk.Label(frameID[0], text='Delete').grid(row=1,
-                                            column=2,
+                                            column=3,
                                             sticky='n')
     
     for itt in range(len(playerList)):
         ne = tk.Label(frameID[0], text=playerList[itt].name)
         ne.grid(row=itt+2, column=0, sticky='w')
-        nf = tk.Label(frameID[0], text=playerList[itt].score)
+        nf = tk.Label(frameID[0], textvariable=playerList[itt].score)
         nf.grid(row=itt+2, column=1, sticky='w')
         fnc_deleteplayer = lambda com, j: lambda: removeplayer(com, j)
         ng = tk.Button(frameID[0], text='X',
                        command=fnc_deleteplayer(note, itt))
-        ng.grid(row=itt+2, column=2, sticky='n')
+        ng.grid(row=itt+2, column=3, sticky='n')
     
     txtid_name = tk.Entry(frameID[0])
     txtid_score = tk.Entry(frameID[0])
@@ -262,6 +262,22 @@ def setup_gametab(note):
     tk.Label(frameID[1], text='Turn: ').grid(row=2, column = 0, sticky = 'w')
     tk.Label(frameID[1], textvariable=gmObj.player_curr).grid(row=2, column=1, sticky='w')
     #tk.Label(frameID[1], textvariable=gmObj.winpoints).grid(row=2,column=2, sticky='w')
+    pl_offset = 4  # Row Offset
+    for itt in range(len(playerList)):
+        i = tk.Label(frameID[1], text=playerList[itt].name)
+        j = tk.Label(frameID[1], textvariable=playerList[itt].score)
+        fnc_upscore = lambda com: lambda: playerList[com].score.set(playerList[com].score.get()+1)
+        fnc_downscore = lambda com: lambda: playerList[com].score.set(playerList[com].score.get()-1)
+        bup = tk.Button(frameID[1], text='^',
+                        command=fnc_upscore(itt))
+        bdwn = tk.Button(frameID[1], text='v',
+                        command=fnc_downscore(itt))
+        
+        i.grid(row=pl_offset+itt, column=0, sticky='w')
+        j.grid(row=pl_offset+itt, column=1, sticky='w')
+        bup.grid(row=pl_offset+itt, column=2, sticky='w')
+        bdwn.grid(row=pl_offset+itt, column=3, sticky='w')
+    
 
 def refresh_gametab(note):
     """ This is frameID[1], the Game Tab
@@ -317,13 +333,11 @@ def refresh_settingstab(note):
     e3.grid(row=3,column=1, stick='w')
 
 
-
-
-
 def removeplayer(note,itt):
     playerList.remove(playerList[itt])
     gmObj.set_turnorder()
     refresh_playertab(note)
+    setup_gametab(note)
     
 
 def addplayer(txt_name, txt_score, note):
@@ -331,10 +345,12 @@ def addplayer(txt_name, txt_score, note):
     score = txt_score.get()
     newplayer = player()
     newplayer.set_name(name)
-    newplayer.set_score(score)
+    newplayer.score = tk.IntVar()
+    newplayer.score.set(score)
     playerList.append(newplayer)
     gmObj.set_turnorder()
     refresh_playertab(note)
+    setup_gametab(note)
 
 def on_closing(root):
     if messagebox.askokcancel("Quit", "Do you want to quit?"):
