@@ -3,9 +3,12 @@
 from ttk import Notebook
 import Tkinter as tk
 from tkinter import messagebox
+from PIL import Image, ImageTk
+from numpy import random as nprnd
 import os, sys, math
 import random
 import time
+
 
 frameID = [0,1,2]  # Global id list for the tab frame IDs
 playerList = []  # List of Player(class) that contains player info including score
@@ -38,7 +41,12 @@ class gamerules():
         self.turn_order = []  # Lists playerList reference in order of turns
         self.turn_rule = 1  #what kind of order the playerList will cycle through
         self.turn_curr = 0  # Current playerList Turn referenced to turn_order
+        self.turn_count = 0  # When the game starts, set to turn 1. Turn 0 before game starts
         self.winpoints = 10  # Amount of points to win
+        self.flag_players = True
+        self.flag_pause = False
+        self.rootobj = []
+        
 
     def get_turnrule(self, spec):
         modes = []
@@ -52,6 +60,7 @@ class gamerules():
         else:
             modes = self.turn_rule
         return modes
+
 
     def time_formatted(self):
         """
@@ -69,18 +78,22 @@ class gamerules():
         return t_form
 
     def start_game(self):
-        self.timer()
+        self.turn_count = 1
         self.timer_curr.set(self.timer_turn.get())
         self.set_turnorder()
+        self.timer()
+
 
     def timer(self):
-        if self.timer_curr.get() <= 0:
-            self.timer_curr.set(self.timer_turn.get())
-            __nextturn = (self.turn_curr.get()+1)%len(self.turn_order)
-            self.turn_curr.set(__nextturn)
-        else:
-            self.timer_curr.set(self.timer_curr.get() - 1)
-        #frameID[1].after(1000,self.timer())
+        if not self.flag_pause:
+            if self.timer_curr.get() <= 0:
+                self.timer_curr.set(self.timer_turn.get())
+                __nextturn = (self.turn_curr.get()+1)%len(self.turn_order)
+                self.turn_curr.set(__nextturn)
+                self.turn_count = self.turn_count + 1  # Iterate turn counter
+            else:
+                self.timer_curr.set(self.timer_curr.get() - 1)
+        gmObj.rootobj.after(1000,self.timer)
 
 
     def set_turnorder(self):
@@ -100,15 +113,15 @@ class gamerules():
         if __rule == 1:  #CW
             self.turn_order = range(0, plen)
         elif __rule == 2:  #CCW
-            self.turn_order = range(plen, 0, -1)
+            self.turn_order = range(plen-1, -1, -1)
         elif __rule == 3:  #Shuffle
             rngord = range(0,plen)
             self.turn_order = random.sample(rngord,plen)
         else:  #Random, Assume Shuffle as default
-            print('Random not implemented')
-            rngord = range(0,plen)
-            self.turn_order = random.sample(rngord,plen)
-        #print(self.turn_order)
+            #print('Random not implemented')
+            rngord = nprnd.randint(plen,size=500)
+            self.turn_order = rngord
+        print(self.turn_order)
 
 class player():
     """ Class that creates and manages the Player Profile
@@ -140,6 +153,7 @@ class FullScreenApp(object):
 
 
 def main():
+    global copy_backimage, background_label
     root = tk.Tk()
     #root.geometry("620x400")
     #app = frame_make(root)
@@ -158,10 +172,12 @@ def main():
     gmObj.winpoints = tk.IntVar()
     
 
-    gmObj.turn_curr.set(0)
-    gmObj.winpoints.set(10)
+    gmObj.turn_curr.set(0)  # Starting player is the first one added
+    gmObj.turn_rule.set(1)  # Default to Clockwise turn-rule
+    gmObj.winpoints.set(10)  # Default winning points
     gmObj.player_curr.set('')
     gmObj.timer_turn.set(300)
+    gmObj.rootobj = root
     ##------------------------Setup Tab1, Players
     frameID[0] = tk.Frame(note)
     note.add(frameID[0], text='Players')
@@ -171,9 +187,8 @@ def main():
     frameID[1] = tk.Frame(note)
     note.add(frameID[1], text='Game')
     frameID[1].configure(background='black')
-    img = tk.PhotoImage(file = background_image)
-    background_label = tk.Label(frameID[1], image=img)
-    background_label.place(x=0,y=0, relwidth=1, relheight=1)
+    
+    #background_label.place(x=0,y=0, relwidth=1, relheight=1)
     setup_gametab(note)
     #refresh_gametab(note)
     ##------------------------Setup Tab3, Settings
@@ -185,26 +200,15 @@ def main():
     #note.pack(fill=tk.X, side=tk.TOP)
 
     fnc_close = lambda com: lambda: on_closing(com)
-
-
-    __start = tk.IntVar()
-    st_button = tk.Button(frameID[1], text='Start Game', command=lambda:__start.set(1))
-    st_button.grid(row=0,column=1)
-        
-    st_button.wait_variable(__start)
-    st_button.destroy()
-    gmObj.start_game()
-
     while True:
-        root.after(1000,gmObj.timer())
-        gmObj.player_curr.set(playerList[gmObj.turn_order[gmObj.turn_curr.get()]].name)
-        
-        refresh_gametab(note)
-        #gmObj.timer()
-        #Detect update player/rules flag
         root.update_idletasks()
         root.update()
         root.protocol("WM_DELETE_WINDOW", fnc_close(root))
+        if gmObj.turn_count > 0:
+            gmObj.player_curr.set(playerList[gmObj.turn_order[gmObj.turn_curr.get()]].name)
+            refresh_gametab(note)
+            #Detect update player/rules flag
+
 
     #FIXME: If you press the X button it throws an errro bc it can't update anymore,
         # I don't want to suprress the error
@@ -212,15 +216,23 @@ def main():
     # PAST THIS POINT, THE USER HAS PRESSED THE "X" CLOSE
     # BUTTON ON THE WINDOW, invoking root.destroy
 
+def resize_image(event):
+    #FIXME: This is jank as hell, should redo to avoid globals
+    global copy_backimage, background_label
+    new_width = event.width
+    new_height = event.height
+    image = copy_backimage.resize((new_width, new_height))
+    photo = ImageTk.PhotoImage(image)
+    background_label.config(image = photo)
+    background_label.image = photo #avoid garbage collection
+
+
 def refresh_playertab(note):
     lastrow = len(playerList)+2
     # +2 accounts for last row of add layer widget and first row
     # of the Name/Score column headers
     for widget in frameID[0].winfo_children():  # Removes all the prior names and scores
         widget.destroy()
-
-    #background_label = tk.Label(frameID[0], image=background_image)
-    #background_label.place(x=0,y=0, relwidth=1, relheight=1)
 
     tk.Label(frameID[0], text='Player').grid(row=1,
                                              column=0,
@@ -254,15 +266,47 @@ def refresh_playertab(note):
                          text='Add Player',
                          command=fnc_addplayer(txtid_name,txtid_score, note)).grid(row=lastrow, column=2, stick='w')
 
+def start_button_press(arg):
+    """
+    Called to handle the Start Button press. Destroys the start button and starts the game
+    """
+    try:
+        arg.destroy()
+    except:
+        print('No Button Object')
+    gmObj.start_game()
+
+
 def setup_gametab(note):
-    gmObj.timer_curr.set(300)
-    gmObj.timer_currform.set('')
-    gmObj.turn_rule.set(1)
-    tk.Label(frameID[1], textvariable=gmObj.timer_currform).grid(row=1, column=0, sticky='w')
+    for widget in frameID[1].winfo_children():  # Removes all the prior names and scores
+        widget.destroy()
+
+    backimage = Image.open(background_image)
+    copy_backimage = backimage.copy()
+    photo= ImageTk.PhotoImage(backimage)
+    
+    #img = tk.PhotoImage(file = background_image)
+    background_label = tk.Label(frameID[1], image=photo)
+    background_label.place(x=0,y=0, relwidth=1, relheight=1)
+    #background_label.bind('<Configure>', resize_image)
+    # Uncomment above to enable background image resizing
+    st_button = []
+    if gmObj.turn_count is 0:
+        fnc_set = lambda: lambda: start_button_press(st_button)
+        st_button = tk.Button(frameID[1], text='Start Game', command=fnc_set())
+        st_button.grid(row=0,column=1)
+    
+    tk.Label(frameID[1], textvariable=gmObj.timer_currform).grid(row=1, column=0,
+                                                                 sticky='n',
+                                                                 columnspan=10,
+                                                                 padx=5,
+                                                                 pady=5)
     tk.Label(frameID[1], text='Turn: ').grid(row=2, column = 0, sticky = 'w')
     tk.Label(frameID[1], textvariable=gmObj.player_curr).grid(row=2, column=1, sticky='w')
     #tk.Label(frameID[1], textvariable=gmObj.winpoints).grid(row=2,column=2, sticky='w')
     pl_offset = 4  # Row Offset
+    fnc_pause = lambda almbda: toggle_pause()
+    gmObj.rootobj.bind('p', fnc_pause)
     for itt in range(len(playerList)):
         i = tk.Label(frameID[1], text=playerList[itt].name)
         j = tk.Label(frameID[1], textvariable=playerList[itt].score)
@@ -272,12 +316,19 @@ def setup_gametab(note):
                         command=fnc_upscore(itt))
         bdwn = tk.Button(frameID[1], text='v',
                         command=fnc_downscore(itt))
-        
         i.grid(row=pl_offset+itt, column=0, sticky='w')
         j.grid(row=pl_offset+itt, column=1, sticky='w')
         bup.grid(row=pl_offset+itt, column=2, sticky='w')
         bdwn.grid(row=pl_offset+itt, column=3, sticky='w')
-    
+    return Image
+
+def toggle_pause():
+    print('Pause Toggle')
+    gmObj.flag_pause = not gmObj.flag_pause
+    if gmObj.flag_pause:
+        messagebox.showinfo("Pause","Press OK then 'p' to unpause")
+    return gmObj.flag_pause
+
 
 def refresh_gametab(note):
     """ This is frameID[1], the Game Tab
@@ -292,8 +343,8 @@ def refresh_gametab(note):
     
     scores.sort(reverse=True)
     gmObj.player_first.set(scores[0])
-    gmObj.player_second.set(scores[1])
-    gmObj.player_third.set(scores[2])
+    #gmObj.player_second.set(scores[1])
+    #gmObj.player_third.set(scores[2])
     #FIXME this needs to be an array of player name sorted by score
     
         
@@ -318,16 +369,13 @@ def refresh_settingstab(note):
         else:
             v_rlf = 'raised'
 
-        fnc_updateturn = lambda: lambda: gmObj.set_turnorder()    
-        #FIXME: This isn't quite working for some reason o well
+        fnc_updateturn = lambda: lambda: gmObj.set_turnorder()
+        #fnc_updateturn = lambda: lambda: gmObj.flag_players = True
         e2 = tk.Radiobutton(frameID[2], text = txt, value=mode, indicatoron=0,
                             relief=v_rlf, variable=gmObj.turn_rule,
                             command=fnc_updateturn())
         e2.grid(row=2,column=mode, stick='w')
     e3 = tk.Entry(frameID[2], textvariable=gmObj.timer_turn)
-
-    #e1.insert(0,gmObj.winpoints.get())
-    #e3.insert(0,gmObj.timer_turn/60)
     
     e1.grid(row=1,column=1, stick='w')
     e3.grid(row=3,column=1, stick='w')
@@ -352,9 +400,11 @@ def addplayer(txt_name, txt_score, note):
     refresh_playertab(note)
     setup_gametab(note)
 
+
 def on_closing(root):
     if messagebox.askokcancel("Quit", "Do you want to quit?"):
         root.destroy()
+
 
 if __name__ == '__main__':
     gmObj = gamerules()  # Creates the Game Object
