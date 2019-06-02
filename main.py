@@ -285,11 +285,13 @@ def setup_gametab(note):
     copy_backimage = backimage.copy()
     photo= ImageTk.PhotoImage(backimage)
     
-    #img = tk.PhotoImage(file = background_image)
     background_label = tk.Label(frameID[1], image=photo)
     background_label.place(x=0,y=0, relwidth=1, relheight=1)
-    #background_label.bind('<Configure>', resize_image)
+    background_label.image = photo
+    #FIXME: Error occurs if you remove a player
+    background_label.bind('<Configure>', resize_image)
     # Uncomment above to enable background image resizing
+
     st_button = []
     if gmObj.turn_count is 0:
         fnc_set = lambda: lambda: start_button_press(st_button)
@@ -320,7 +322,7 @@ def setup_gametab(note):
         j.grid(row=pl_offset+itt, column=1, sticky='w')
         bup.grid(row=pl_offset+itt, column=2, sticky='w')
         bdwn.grid(row=pl_offset+itt, column=3, sticky='w')
-    return Image
+
 
 def toggle_pause():
     print('Pause Toggle')
