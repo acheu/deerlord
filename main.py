@@ -85,12 +85,14 @@ class gamerules():
 
 
     def timer(self):
+        sf = __location__ + "/sleighbells1.wav"
         if not self.flag_pause:
             if self.timer_curr.get() <= 0:
                 self.timer_curr.set(self.timer_turn.get())
                 __nextturn = (self.turn_curr.get()+1)%len(self.turn_order)
                 self.turn_curr.set(__nextturn)
                 self.turn_count = self.turn_count + 1  # Iterate turn counter
+                playsound(sf)
             else:
                 self.timer_curr.set(self.timer_curr.get() - 1)
         gmObj.rootobj.after(1000,self.timer)
@@ -153,7 +155,6 @@ class FullScreenApp(object):
 
 
 def main():
-    global copy_backimage, background_label
     root = tk.Tk()
     #root.geometry("620x400")
     #app = frame_make(root)
@@ -221,7 +222,14 @@ def resize_image(event):
     global copy_backimage, background_label
     new_width = event.width
     new_height = event.height
-    image = copy_backimage.resize((new_width, new_height))
+    img_width = copy_backimage.size[0]
+    img_height = copy_backimage.size[1]
+    wpercent = new_width/float(img_width)
+    hsize = int(float(img_height)*float(wpercent))
+    image = copy_backimage.resize((new_width, hsize))
+    #FIXME: Understand this resize algorithm and improve it
+    
+    #image = copy_backimage.resize((new_width, new_height))
     photo = ImageTk.PhotoImage(image)
     background_label.config(image = photo)
     background_label.image = photo #avoid garbage collection
@@ -278,6 +286,7 @@ def start_button_press(arg):
 
 
 def setup_gametab(note):
+    global copy_backimage, background_label
     for widget in frameID[1].winfo_children():  # Removes all the prior names and scores
         widget.destroy()
 
@@ -298,11 +307,9 @@ def setup_gametab(note):
         st_button = tk.Button(frameID[1], text='Start Game', command=fnc_set())
         st_button.grid(row=0,column=1)
     
-    tk.Label(frameID[1], textvariable=gmObj.timer_currform).grid(row=1, column=0,
-                                                                 sticky='n',
-                                                                 columnspan=10,
-                                                                 padx=5,
-                                                                 pady=5)
+    tkcounter = tk.Label(frameID[1], textvariable=gmObj.timer_currform)
+    tkcounter.config(font=('Arial',44))
+    tkcounter.grid(row=1, column=0, sticky='n', columnspan=10, padx=5, pady=5)
     tk.Label(frameID[1], text='Turn: ').grid(row=2, column = 0, sticky = 'w')
     tk.Label(frameID[1], textvariable=gmObj.player_curr).grid(row=2, column=1, sticky='w')
     #tk.Label(frameID[1], textvariable=gmObj.winpoints).grid(row=2,column=2, sticky='w')
@@ -349,7 +356,7 @@ def refresh_gametab(note):
     #gmObj.player_third.set(scores[2])
     #FIXME this needs to be an array of player name sorted by score
     
-        
+
 
 def refresh_settingstab(note):
     """ This is frameID[2], the settings tab
@@ -401,6 +408,13 @@ def addplayer(txt_name, txt_score, note):
     gmObj.set_turnorder()
     refresh_playertab(note)
     setup_gametab(note)
+
+
+def playsound(sf_loc):
+    # play bell sound when a player changes
+    #UNLESS the name is "Jack", in that case play a prerecorded voice shouting
+    #"Jack, it's your turn"
+    os.system("mpg123 " + sf_loc)
 
 
 def on_closing(root):
