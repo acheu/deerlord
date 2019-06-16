@@ -18,6 +18,7 @@ gmObj = []  # Main Game Object
 __location__ = os.path.realpath(
         os.path.join(os.getcwd(), os.path.dirname(__file__)))
 background_image = __location__ + '/deerlord_background.png'
+background_color = __location__ + '/blackbg.png'
 seff1 = __location__ + '/sleighbell1.mp3'
 seff2 = __location__ + '/jiyt.mp3'
 
@@ -233,20 +234,22 @@ def main():
 
 def resize_image(event):
     #FIXME: This is jank as hell, should redo to avoid globals
-    global copy_backimage, background_label
+    #global copy_backimage, background_label
+    global copy_backcolor, background_label2
+
     new_width = event.width
     new_height = event.height
-    img_width = copy_backimage.size[0]
-    img_height = copy_backimage.size[1]
+    img_width = copy_backcolor.size[0]
+    img_height = copy_backcolor.size[1]
     wpercent = new_width/float(img_width)
     hsize = int(float(img_height)*float(wpercent))
-    image = copy_backimage.resize((new_width, hsize))
+    image = copy_backcolor.resize((new_width, hsize))
     #FIXME: Understand this resize algorithm and improve it
     
     #image = copy_backimage.resize((new_width, new_height))
     photo = ImageTk.PhotoImage(image)
-    background_label.config(image = photo)
-    background_label.image = photo #avoid garbage collection
+    background_label2.config(image = photo)
+    background_label2.image = photo #avoid garbage collection
 
 
 def refresh_playertab(note):
@@ -301,16 +304,25 @@ def start_button_press(arg):
     
 
 def setup_gametab(note):
-    global copy_backimage, background_label
+    #global copy_backimage, background_label
+    global copy_backcolor, background_label2
     for widget in frameID[1].winfo_children():  # Removes all the prior names and scores
         widget.destroy()
+
+    #backcolor = Image.open(background_color)
+    #copy_backcolor = backcolor.copy()
+    #photo2 = ImageTk.PhotoImage(backcolor)
+    #background_label2 = tk.Label(frameID[1], image=photo2)
+    #background_label2.place(x=0,y=0,relwidth=1,relheight=1)
+    #background_label2.image = photo2
+    #background_label2.bind('<Configure>',resize_image)
 
     backimage = Image.open(background_image)
     copy_backimage = backimage.copy()
     photo= ImageTk.PhotoImage(backimage)
-    
     background_label = tk.Label(frameID[1], image=photo)
-    background_label.place(x=0,y=0, relwidth=1, relheight=1)
+    background_label.place(x=0, y=0, relwidth=1, relheight=1)
+    #background_label.place(relx=.5,rely=.5, anchor=tk.CENTER)
     background_label.image = photo
     
     #background_label.bind('<Configure>', resize_image)
@@ -326,15 +338,18 @@ def setup_gametab(note):
     tkcounter = tk.Label(frameID[1], textvariable=gmObj.timer_currform)
     tkcounter.config(font=('Arial',44))
     tkcounter.grid(row=1, column=0, sticky='n', columnspan=10, padx=5, pady=5)
-    tk.Label(frameID[1], text='Turn: ').grid(row=2, column = 0, sticky = 'w')
-    tk.Label(frameID[1], textvariable=gmObj.player_curr).grid(row=2, column=1, sticky='w')
+    #tk.Label(frameID[1], text='Turn: ').grid(row=2, column = 0, sticky = 'w')
+    tply = tk.Label(frameID[1], textvariable=gmObj.player_curr)
+    tply.config(font=('Arial',30))
+    tply.grid(row=3, column=0, sticky='n', columnspan=10, padx=5, pady=5)
+    
     #tk.Label(frameID[1], textvariable=gmObj.winpoints).grid(row=2,column=2, sticky='w')
     pl_offset = 4  # Row Offset
-    fnc_pause = lambda almbda: toggle_pause()
-    gmObj.rootobj.bind('p', fnc_pause)
+
     for itt in range(len(playerList)):
         i = tk.Label(frameID[1], text=playerList[itt].name)
         j = tk.Label(frameID[1], textvariable=playerList[itt].score)
+        k = tk.Label(frameID[1], text=' | ')
         fnc_upscore = lambda com: lambda: playerList[com].score.set(playerList[com].score.get()+1)
         fnc_downscore = lambda com: lambda: playerList[com].score.set(playerList[com].score.get()-1)
         bup = tk.Button(frameID[1], text='^',
@@ -342,12 +357,23 @@ def setup_gametab(note):
         bdwn = tk.Button(frameID[1], text='v',
                         command=fnc_downscore(itt))
         i.grid(row=pl_offset+itt, column=0, sticky='w')
-        j.grid(row=pl_offset+itt, column=1, sticky='w')
-        bup.grid(row=pl_offset+itt, column=2, sticky='w')
-        bdwn.grid(row=pl_offset+itt, column=3, sticky='w')
+        k.grid(row=pl_offset+itt, column=1, stick='w')
+        j.grid(row=pl_offset+itt, column=2, sticky='w')
+        bup.grid(row=pl_offset+itt, column=3, sticky='w')
+        bdwn.grid(row=pl_offset+itt, column=4, sticky='w')
+    gmObj.rootobj.bind('p', pauseKey)
+    gmObj.rootobj.bind('<Up>', upKey)
+    gmObj.rootobj.bind('<Down>', downKey)
 
-def toggle_pause():
-    print('Pause Toggle')
+def downKey(event):
+    __curr = gmObj.turn_curr.get()
+    playerList[__curr].score.set(playerList[__curr].score.get()-1)    
+
+def upKey(event):
+    __curr = gmObj.turn_curr.get()
+    playerList[__curr].score.set(playerList[__curr].score.get()+1)
+
+def pauseKey(event):
     gmObj.flag_pause = not gmObj.flag_pause
     if gmObj.flag_pause:
         messagebox.showinfo("Pause","Press OK then 'p' to unpause")
