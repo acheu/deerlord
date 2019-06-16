@@ -5,9 +5,11 @@ import Tkinter as tk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 from numpy import random as nprnd
+from pygame import mixer
 import os, sys, math
 import random
 import time
+
 
 
 frameID = [0,1,2]  # Global id list for the tab frame IDs
@@ -16,6 +18,14 @@ gmObj = []  # Main Game Object
 __location__ = os.path.realpath(
         os.path.join(os.getcwd(), os.path.dirname(__file__)))
 background_image = __location__ + '/deerlord_background.png'
+seff1 = __location__ + '/sleighbell1.mp3'
+seff2 = __location__ + '/jiyt.mp3'
+
+# Initialization parameters of the pygame.mixer
+#FREQ = 48000
+#BITSIZE = -16
+#CHANNELS = 1
+#BUFFER = 4096
 
 class frame_make(tk.Frame):
     def __init__(self, parent):
@@ -85,14 +95,18 @@ class gamerules():
 
 
     def timer(self):
-        sf = __location__ + "/sleighbells1.wav"
+        #sf = __location__ + "/sleighbells1.wav"
         if not self.flag_pause:
             if self.timer_curr.get() <= 0:
                 self.timer_curr.set(self.timer_turn.get())
                 __nextturn = (self.turn_curr.get()+1)%len(self.turn_order)
                 self.turn_curr.set(__nextturn)
                 self.turn_count = self.turn_count + 1  # Iterate turn counter
-                playsound(sf)
+                playername = playerList[self.turn_curr.get()].name
+                if playername == 'Jack':
+                    playsound(seff2)
+                else:
+                    playsound(seff1)
             else:
                 self.timer_curr.set(self.timer_curr.get() - 1)
         gmObj.rootobj.after(1000,self.timer)
@@ -159,7 +173,9 @@ def main():
     #root.geometry("620x400")
     #app = frame_make(root)
     app = FullScreenApp(root)
-    
+
+    #mixer.init(FREQ, BITSIZE, CHANNELS, BUFFER)
+    mixer.init()
     note = Notebook(root)
     gmObj.timer_curr = tk.IntVar()
     gmObj.timer_currform = tk.StringVar()
@@ -414,8 +430,11 @@ def playsound(sf_loc):
     # play bell sound when a player changes
     #UNLESS the name is "Jack", in that case play a prerecorded voice shouting
     #"Jack, it's your turn"
-    os.system("mpg123 " + sf_loc)
-
+    #os.system("mpg123 " + sf_loc)
+    #snd = mixer.Sound(sf_loc)
+    #snd.play()
+    mixer.music.load(sf_loc)
+    mixer.music.play()
 
 def on_closing(root):
     if messagebox.askokcancel("Quit", "Do you want to quit?"):
