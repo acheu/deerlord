@@ -27,16 +27,6 @@ seff2 = __location__ + '/jiyt.mp3'
 #CHANNELS = 1
 #BUFFER = 4096
 
-class frame_make(tk.Frame):
-    def __init__(self, parent):
-        # Frame.__init__(self, parent, background="white")
-        tk.Frame.__init__(self, parent)
-        self.parent = parent
-        self.initUI()
-    def initUI(self):
-        self.parent.title("Deer Lord Narrator")
-        self.pack(fill=tk.BOTH, expand=1)
-
 class gamerules():
     """ Gamerules class. There should only be 1 gamerules object per game
     """
@@ -158,14 +148,26 @@ class FullScreenApp(object):
         self.master=master
         pad=3
         self._geom='820x510+0+0'
+        self.master.title('Deer Lord Narrator')
         master.geometry("{0}x{1}+0+0".format(
             master.winfo_screenwidth()-pad, master.winfo_screenheight()-pad))
-        master.bind('<Escape>',self.toggle_geom)            
+        master.bind('<Escape>',self.toggle_geom)
+        
     def toggle_geom(self,event):
         geom=self.master.winfo_geometry()
         print(geom,self._geom)
         self.master.geometry(self._geom)
         self._geom=geom
+
+class frame_make(tk.Frame):
+    def __init__(self, parent):
+        # Frame.__init__(self, parent, background="white")
+        tk.Frame.__init__(self, parent)
+        self.parent = parent
+        self.initUI()
+    def initUI(self):
+        self.parent.title("Deer Lord Narrator")
+        self.pack(fill=tk.BOTH, expand=1)
 
 
 def main():
@@ -173,7 +175,6 @@ def main():
     #root.geometry("620x400")
     #app = frame_make(root)
     app = FullScreenApp(root)
-
     #mixer.init(FREQ, BITSIZE, CHANNELS, BUFFER)
     mixer.init()
     note = Notebook(root)
@@ -217,21 +218,18 @@ def main():
     #note.pack(fill=tk.X, side=tk.TOP)
 
     fnc_close = lambda com: lambda: on_closing(com)
+    root.protocol("WM_DELETE_WINDOW", fnc_close(root))
+    
     while True:
-        root.update_idletasks()
-        root.update()
-        root.protocol("WM_DELETE_WINDOW", fnc_close(root))
-        if gmObj.turn_count > 0:
-            gmObj.player_curr.set(playerList[gmObj.turn_order[gmObj.turn_curr.get()]].name)
-            refresh_gametab(note)
-            #Detect update player/rules flag
-
-
-    #FIXME: If you press the X button it throws an errro bc it can't update anymore,
-        # I don't want to suprress the error
-    #root.mainloop()
-    # PAST THIS POINT, THE USER HAS PRESSED THE "X" CLOSE
-    # BUTTON ON THE WINDOW, invoking root.destroy
+        try:
+            root.update_idletasks()
+            root.update()
+            if gmObj.turn_count > 0:
+                gmObj.player_curr.set(playerList[gmObj.turn_order[gmObj.turn_curr.get()]].name)
+                refresh_gametab(note)
+                #Detect update player/rules flag
+        except:
+            break
 
 def resize_image(event):
     #FIXME: This is jank as hell, should redo to avoid globals
@@ -294,12 +292,13 @@ def start_button_press(arg):
     """
     Called to handle the Start Button press. Destroys the start button and starts the game
     """
-    try:
-        arg.destroy()
-    except:
-        print('No Button Object')
-    gmObj.start_game()
-
+    if len(playerList)>0:
+        try:
+            arg.destroy()
+        except:
+            print('No Button Object')
+        gmObj.start_game()
+    
 
 def setup_gametab(note):
     global copy_backimage, background_label
@@ -313,10 +312,11 @@ def setup_gametab(note):
     background_label = tk.Label(frameID[1], image=photo)
     background_label.place(x=0,y=0, relwidth=1, relheight=1)
     background_label.image = photo
-    #FIXME: Error occurs if you remove a player
-    background_label.bind('<Configure>', resize_image)
+    
+    #background_label.bind('<Configure>', resize_image)
     # Uncomment above to enable background image resizing
-
+    
+    
     st_button = []
     if gmObj.turn_count is 0:
         fnc_set = lambda: lambda: start_button_press(st_button)
@@ -345,7 +345,6 @@ def setup_gametab(note):
         j.grid(row=pl_offset+itt, column=1, sticky='w')
         bup.grid(row=pl_offset+itt, column=2, sticky='w')
         bdwn.grid(row=pl_offset+itt, column=3, sticky='w')
-
 
 def toggle_pause():
     print('Pause Toggle')
@@ -431,15 +430,15 @@ def playsound(sf_loc):
     #UNLESS the name is "Jack", in that case play a prerecorded voice shouting
     #"Jack, it's your turn"
     #os.system("mpg123 " + sf_loc)
-    #snd = mixer.Sound(sf_loc)
-    #snd.play()
     mixer.music.load(sf_loc)
     mixer.music.play()
 
 def on_closing(root):
-    if messagebox.askokcancel("Quit", "Do you want to quit?"):
-        root.destroy()
-
+    try:
+        if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            root.destroy()
+    except:
+        pass
 
 if __name__ == '__main__':
     gmObj = gamerules()  # Creates the Game Object
